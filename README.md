@@ -1,3 +1,8 @@
+# Skate around in Unity Editor
+
+Instructions for loading a map in Unity's editor and skating around.  This research may be useful for other modders working on
+tools for custom map authors.
+
 ## Install Prerequisites
 
 ### Unity
@@ -93,20 +98,15 @@ Assets/Shader/Hidden_UIElements_EditorUIE_0.shader
 Patch file is [patch.patch](./patch.patch)
 Apply those code changes to the `Scripts` subdirectory.
 
-TODO explain this better
+TODO explain this better, tools can apply the patch automatically.
 
 ## Create `SkateInEditor` scene
 
-We need to load one additional `MonoBehaviour` to complete the bootstrapping process.  Make a new Scene `SkateInEditor` with a single empty gameobject with the `SkateInEditor` script attached.
+We need to load one additional `MonoBehaviour` to complete the bootstrapping process.
+
+Make a new Scene `SkateInEditor` with a single empty gameobject with the `SkateInEditor` script attached.
 
 *We could alternatively add this GameObject to the core or Bootstrap scenes, but I like to avoid modifying them*
-
-### Viewing changes in Beyond Compare
-
-If you have a pristine (unmodified) rip from AssetRipper alongside your modified rip, you can use a diffing tool to see
-which scripts were modified.
-
-In Beyond Compare 4, choose folder compare, compare the Assets/Scripts directories, and for "Filters" put: `-*.meta`
 
 ## Open scenes
 
@@ -121,7 +121,18 @@ Search for and open all these scenes in the editor:
 
 ---
 
+<!--
+## Generating the patch
+
+If you have a pristine (unmodified) rip from AssetRipper alongside your modified rip, you can use a diffing tool to see
+which scripts were modified.
+
+In Beyond Compare 4, choose folder compare, compare the Assets/Scripts directories, and for "Filters" put: `-*.meta`
+-->
+
 ## Problems
 
-Going into and out of play mode is really slow.  Any way we can optimize?
+Going into and out of play mode is slow.  Any way we can optimize?
 
+Does not load a save file from disk.  Good because it doesn't corrupt your saves, bad if you want things to be unlocked.
+Some of our code unlocks things, can we add more code to unlock everything automatically?
