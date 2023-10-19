@@ -1,0 +1,277 @@
+diff -r  Assembly-CSharp\Reptile\AchievementsEditor.cs
+0a1,2
+> using System.Collections;
+> using UnityEngine;
+0a4,10
+> namespace Reptile
+> {
+> 	public class AchievementsEditor : Achievements
+> 	{
+> 		public override void PlatformInit(AUser user)
+> 		{
+> 		}
+0a12,17
+> 		public override void PlatformRetrieveAchievement(AchievementType type, RetrieveAchievementCallback retrieveCallback)
+> 		{
+> 			bool pbAchieved = false;
+> 			retrieveCallback(type, pbAchieved);
+> 			asyncState = AsyncState.TaskComplete;
+> 		}
+0a19,22
+> 		public override void PlatformRefreshAchievementsCacheThroughServer(RefreshAchievementsCacheThroughServer refreshCallback)
+> 		{
+> 			refreshCallback(isUptodate: true);
+> 		}
+0a24,27
+> 		public override void PlatformUnlockAchievement(AchievementType type)
+> 		{
+> 			Core.Instance.StartCoroutine(StoreStatsRoutine());
+> 		}
+0a29,40
+> 		private IEnumerator StoreStatsRoutine()
+> 		{
+> 			int retries = 0;
+> 			bool flag = true;
+> 			while (!flag && retries < 10)
+> 			{
+> 				yield return new WaitForSeconds(2f);
+> 				flag = true;
+> 				int num = retries + 1;
+> 				retries = num;
+> 			}
+> 		}
+0a50,59
+> 		private void UpdateAchievementStates()
+> 		{
+> 			Achievement[] achievements = achievementLibrary.Achievements;
+> 			for (int i = 0; i < achievements.Length; i++)
+> 			{
+> 				Achievement achievement = achievements[i];
+> 				string steamAPIName = achievement.SteamAPIName;
+> 				if (steamAPIName != null && !steamAPIName.Equals(string.Empty))
+> 				{
+> 					bool pbAchieved = false;
+0a61,72
+> 					bool num = !pbAchieved && achievement.IsUnlocked;
+> 					if (pbAchieved)
+> 					{
+> 						achievement.UnlockAchievement();
+> 					}
+> 					if (num)
+> 					{
+> 						UnlockAchievement((AchievementType)i);
+> 					}
+> 				}
+> 			}
+> 		}
+0a78,84
+> 		public override void PlatformClearAchievements()
+> 		{
+> 			Achievement[] achievements = achievementLibrary.Achievements;
+> 			for (int i = 0; i < achievements.Length; i++)
+> 			{
+> 				if (achievements[i].SteamAPIName != null && !achievements[i].SteamAPIName.Equals(string.Empty))
+> 				{
+0a86,87
+> 				}
+> 			}
+0a89,91
+> 		}
+> 	}
+> }
+diff -r Assembly-CSharp\Reptile\APlatform.cs Assembly-CSharp\Reptile\APlatform.cs
+3a4
+> using UnityEngine;
+71c72
+< 				Utils.ForceCrash(ForcedCrashCategory.FatalError);
+---
+>                 Debug.Log("Would have called Utils.ForceCrash(ForcedCrashCategory.FatalError);");
+diff -r Assembly-CSharp\Reptile\Assets.cs Assembly-CSharp\Reptile\Assets.cs
+3a4
+> using UnityEditor;
+264,265c265,266
+< 			Bundle value = null;
+< 			if (availableBundles.TryGetValue(bundleName, out value) && value.IsLoaded)
+---
+> 			// Release builds of BRC attempt to load assets from bundles.
+> 			// This replacement code does the equivalent lookup in the editor:
+266,267c268,272
+< 			{
+< 				return value.AssetBundle.LoadAsset<T>(assetName);
+---
+> 			var found = AssetDatabase.GetAssetPathsFromAssetBundleAndAssetName(bundleName, assetName);
+> 			if (found.Length > 1) {
+> 				Debug.Log("Tried to load bundle:" + bundleName + " asset:" + assetName + " but got multiple matches: " + string.Join(',', found));
+> 			}
+> 			if (found.Length == 0) {
+267a276
+> 				Debug.Log("Tried to load bundle:" + bundleName + " asset:" + assetName + " but did not find any matches (sometimes this is fine)");
+269c278,279
+< 			throw new NoBundleFoundException(bundleName);
+---
+> 			var asset = found.Length > 0 ? AssetDatabase.LoadAssetAtPath<T>(found[0]) : null;
+> 			return asset;
+310a323,327
+> 					((T)assetLoader).LoadAssets(new AssetsToLoadData {
+> 						loadCharacters = true,
+> 						loadGameplayPrefabs = true,
+> 						loadGraffiti = true
+> 					});
+370a388
+> 				if(files[i].Extension == ".meta") continue;
+diff -r Assembly-CSharp\Reptile\Bootstrap.cs Assembly-CSharp\Reptile\Bootstrap.cs
+43d42
+< 			InitializeSteam();
+46c45,46
+< 			LaunchGame();
+---
+> 
+> 			Core.Instance.StartCore(assets, gameVersion);
+46a49,69
+> 			var SaveManager = Core.Instance.SaveManager;
+> 			SaveManager.CreateNewSaveSlot(1);
+> 			var ss = SaveManager.CurrentSaveSlot;
+> 			ss.CurrentStage = Stage.hideout;
+> 			ss.SetCurrentStageProgress(ss.CurrentStage);
+> 			ss.CurrentStoryObjective = Story.ObjectiveID.HangOut;
+> 			ss.taxiLocked = false;
+> 			ss.currentCharacter = Characters.girl1;
+> 			for(var i = 0; i < ss.dancesUnlocked.Length; i++) {
+> 				ss.dancesUnlocked[i] = true;
+> 			}
+> 			for(Characters i = 0; i < Characters.MAX; i++) {
+> 				ss.GetCharacterProgress(i).unlocked = true;
+> 			}
+> 			var sp = ss.GetCurrentStageProgress();
+> 			sp.mapFound = true;
+> 			sp.alreadyVisited = true;
+> 			sp.reputation = 999;
+> 			sp.crewCounter = 99;
+> 			var cp = ss.GetCharacterProgress(ss.currentCharacter);
+> 			cp.moveStyle = MoveStyle.INLINE;
+46a74,77
+> 			var uid = "771c967d-5084-4c6b-8004-7ca9ffcc69f3";
+> 			ObjectProgress progressableData = (ObjectProgress)sp.CreateProgressableData(uid, ProgressableType.OBJECT_PROGRESS);
+> 			progressableData.isActive = false;
+> 			progressableData.isTriggered = false;
+diff -r Assembly-CSharp\Reptile\ControllerGuidHandlerFactory.cs Assembly-CSharp\Reptile\ControllerGuidHandlerFactory.cs
+7c7
+< 			return new SteamControllerGuidHandler(inputControllerGuidData, platform);
+---
+> 			return new RewiredControllerGuidHandler(inputControllerGuidData, platform);
+diff -r Assembly-CSharp\Reptile\PlatformSteam.cs Assembly-CSharp\Reptile\PlatformSteam.cs
+26c26
+< 			storage = new StorageSteam(Application.persistentDataPath);
+---
+> 			storage = new StorageEditor(Application.persistentDataPath);
+28,29c28,29
+< 			achievements = new AchievementsSteam();
+< 			downloadableContent = new DownloadableContentSteam();
+---
+> 			achievements = new AchievementsEditor();
+> 			downloadableContent = new DownloadableContentEditor();
+68c68
+< 			Utils.ForceCrash(ForcedCrashCategory.Abort);
+---
+> 			// Utils.ForceCrash(ForcedCrashCategory.Abort);
+diff -r  Assembly-CSharp\Reptile\StorageEditor.cs
+0a1,5
+> using System;
+> using System.Collections.Generic;
+> using System.IO;
+> using System.Text;
+> using System.Threading;
+0a7,11
+> namespace Reptile
+> {
+>     public class StorageEditor : AStorage
+>     {
+> 		public StorageEditor(string storageDirectory) : base(storageDirectory) {
+0a13
+> 		}
+0a15,16
+>         public override void PlatformClearUserSaveData(IUserId userId)
+>         {
+0a18
+>         }
+0a20,21
+>         public override void PlatformCreateDirectory(DirectoryCreateTransaction directoryCreateTransaction)
+>         {
+0a23,24
+> 			directoryCreateTransaction.ChangeStatus(ATransaction.TransactionStatus.SUCCESS);
+>         }
+0a26,27
+>         public override void PlatformDeleteData(DeleteTransaction deleteTransaction)
+>         {
+0a29,30
+> 			deleteTransaction.ChangeStatus(ATransaction.TransactionStatus.SUCCESS);
+>         }
+0a32,34
+>         public override bool PlatformInitUserSaveData(IUserId userId)
+>         {
+> 			return true;
+0a36
+>         }
+0a38,39
+>         public override void PlatformLoadData<T>(LoadTransaction<T> loadTransaction)
+>         {
+0a41,42
+> 			loadTransaction.ChangeStatus(ATransaction.TransactionStatus.SUCCESS);
+>         }
+0a44,45
+>         public override void PlatformRenameFile(RenameFileTransaction renameFileTransaction)
+>         {
+0a47,48
+> 			renameFileTransaction.ChangeStatus(ATransaction.TransactionStatus.SUCCESS);
+>         }
+0a50,51
+>         public override void PlatformRetrieveDirectoryInfo(DirectoryInfoTransaction directoryInfoTransaction)
+>         {
+0a53,55
+> 			directoryInfoTransaction.DirectoryFileNames = new string[0];
+> 			directoryInfoTransaction.ChangeStatus(ATransaction.TransactionStatus.SUCCESS);
+>         }
+0a57,58
+>         public override void PlatformSaveData<T>(SaveTransaction<T> saveTransaction)
+>         {
+0a60,61
+> 			saveTransaction.ChangeStatus(ATransaction.TransactionStatus.SUCCESS);
+>         }
+0a63,64
+>         public override void PlatformStartNextTransaction()
+>         {
+0a66,69
+> 			SetNextTransaction();
+>         }
+>     }
+> }
+diff -r Assembly-CSharp\Reptile\UserIdSteam.cs Assembly-CSharp\Reptile\UserIdSteam.cs
+8c8
+< 		private AccountID_t userId;
+---
+> 		private string userId;
+18c18
+< 		public UserIdSteam(AccountID_t userId, string userName)
+---
+> 		public UserIdSteam(string userId, string userName)
+diff -r Assembly-CSharp\Reptile\UserSteam.cs Assembly-CSharp\Reptile\UserSteam.cs
+9c9
+< 		public static readonly AccountID_t NO_ACCOUNT_ID = new AccountID_t(0u);
+---
+> 		public static readonly string NO_ACCOUNT_ID = "no_account_id";
+18c18
+< 			userId = new UserIdSteam(SteamUser.GetSteamID().GetAccountID(), SteamFriends.GetPersonaName());
+---
+> 			userId = new UserIdSteam("account_id", "persona_name");
+diff -r  Assembly-CSharp\SkateInEditor.cs
+0a1,2
+> using UnityEngine;
+> using Reptile;
+0a4,10
+> public class SkateInEditor : MonoBehaviour
+> {
+>     void Start()
+>     {
+>         Core.Instance.BaseModule.SetupNewStage(Stage.NONE, Stage.hideout);
+>     }
+> }
