@@ -1,3 +1,7 @@
+# BRC Modding notes, research, experiments
+
+See also: the wiki https://github.com/cspotcode/bomb-rush-cyberfunk-modding/wiki/
+
 # Skate around in Unity Editor
 
 Instructions for loading a map in Unity's editor and skating around.  This research may be useful for other modders working on
