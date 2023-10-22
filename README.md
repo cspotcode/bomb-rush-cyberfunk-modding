@@ -75,7 +75,7 @@ Window -> Package Manager
 
 At top, click "Packages" and toggle it to "Packages: Unity Registry"
 
-Search for and install "Unity UI."
+Search for and install "Unity UI" and "Timeline."
 
 If you'll be editing code, also install "Visual Studio Editor" *and* "Visual Studio Code Editor." *If you use Visual Studio Code, you must install both of them!*
 
